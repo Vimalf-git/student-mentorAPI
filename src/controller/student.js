@@ -1,53 +1,96 @@
 import studentModel from "../model/student.js"
 const createStudent = async (req, res) => {
     try {
-        await studentModel.create(req.body);
-        res.status(201).send({ message: 'student data created' })
+        const studentexist = await studentModel.findOne({ email: req.body.email })
+        if (!studentexist) {
+            await studentModel.create(req.body);
+            res.status(201).send({ message: 'student data created' })
+        } else {
+            res.status(400).send({ message: 'user exists' })
+        }
     } catch (error) {
         res.status(500).send({ message: error.message });
     }
 }
 
 const getStudentByMentor = async (req, res) => {
-    // console.log(req);
-    const studentList = await studentModel.find({ mentorname: req.params.name })
-    //    console.log(studentList);
-    // const studentData= 
-    // console.log(typeof(studentList));
-    // const studentData=studentList.
+    const data = await studentModel.find({ mentorname: req.params.name })
     res.send({
         message: 'successfully fetched',
-        mentor: studentList
+        mentor: data
     })
 }
 
 const asignMentor = async (req, res) => {
     try {
-        console.log("ih");
-        let studentList = await studentModel.findOne({ studentname: req.body.studentname })
-        if (studentList) {
-            let prevMentor =
-            studentList.previousmentorname?[...studentList.previousmentorname,studentList.mentorname]
-             :studentList.mentorname;
-            let { studentname, email, batch, mentorname } = req.body
-            console.log(mentorname);
+        // let studentList = await studentModel.findOne({ mentorname: req.body.mentorname})
+        // if (!studentList) {
+        let data = await studentModel.findOne({ studentname: req.body.studentname })
+        let prevMentor =
+            data.previousmentorname ? [...data.previousmentorname, data.mentorname]
+                : data.mentorname;
+        let { studentname, email, batch, mentorname } = req.body
+        // console.log(mentorname);
 
-            studentList.studentname = studentname ? studentname : studentList.studentname;
-            studentList.email = email ? email : studentList.email;
-            studentList.batch = batch ? batch : studentList.batch;
-            studentList.mentorname = mentorname?mentorname:studentList.mentorname;
-            studentList.previousmentorname = prevMentor;
+        data.studentname = studentname ? studentname : data.studentname;
+        data.email = email ? email : data.email;
+        data.batch = batch ? batch : data.batch;
+        data.mentorname = mentorname ? mentorname : data.mentorname;
+        data.previousmentorname = prevMentor;
 
-            await studentList.save()
-            res.status(200).send({ message: 'updated successfully' })
-        } else {
-            res.status(400).send({ message: 'student is not exists' })
+        await data.save()
+        res.status(200).send({ message: 'updated successfully' })
+        // } else {
+        //     res.status(400).send({ message: 'mentor is exists' })
 
-        }
+        // }
 
     } catch (error) {
         res.status(500).send({ message: error.message })
     }
 
 }
-export default { createStudent, getStudentByMentor, asignMentor }
+
+const getmentorbystudent = async (req, res) => {
+    try {
+        let prevmentors = await studentModel.findOne({ studentname: req.params.studentname })
+        //    console.log(await prevmentors.previousmentorname);
+        if (prevmentors) {
+            res.status(200).send({ message: 'successfully fetched', previousmentors: prevmentors.previousmentorname })
+        } else {
+            res.status(400).send({ message: 'Invalid request' })
+        }
+    } catch (error) {
+        res.status(500).send({ message: error.message })
+    }
+}
+const getUnassign = async (req, res) => {
+    // const getUnassignMentor = await studentModel.find({}, { mentorname: 1, _id: 0 })
+    // console.log(getUnassignMentor);
+    // let unassignstud = getUnassignMentor.map((e) => {
+    //     return  e.mentorname })
+    //     console.log(unassignstud);
+    //  const getUnassignMentor= await  studentModel.find({ mentorname: {$exists:false}},{studentname:1,_id:0})
+        const getUnassignMentor= await  studentModel.find({ mentorname: {$eq:""}},{studentname:1,_id:0})
+
+     let filData= getUnassignMentor.map((e)=>e.studentname)
+    // console.log(filData);
+    res.status(200).send({ message: 'fetch unassigned studentList successfully', 
+    unassignstudent: filData })
+}
+
+const assignStudentMentors=async(req,res)=>{
+    // console.log(req.body);
+   const stuObj= await  studentModel.find({studentname:{$in:req.body.studentList}})
+   stuObj.map((e)=>{
+    e.mentorname=req.body.mentorname;
+   e.save();
+   })
+//    console.log(stuObj);
+   res.status(200).send({message:'mentor assigned successfully'})
+}
+export default {
+    createStudent, getStudentByMentor,
+    asignMentor, getmentorbystudent, getUnassign,
+    assignStudentMentors
+}
