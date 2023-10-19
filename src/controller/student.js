@@ -82,7 +82,7 @@ const getUnassign = async (req, res) => {
 const assignStudentMentors=async(req,res)=>{
     // console.log(req.body);
    const stuObj= await  studentModel.find({studentname:{$in:req.body.studentList}})
-   stuObj.map((e)=>{
+   stuObj.forEach((e)=>{
     e.mentorname=req.body.mentorname;
    e.save();
    })
